@@ -1,0 +1,42 @@
+# Built artifacts
+bin/
+gen/
+out/
+build/
+.gradle/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Android Studio
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aar
+*.ap_
+*.dex
+*.class
+
+# Local configuration
+local.properties
+
+# Log files
+*.log
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Kotlin
+.kotlin/
+
+# Secrets
+secrets.xml
+google-services.json
+
+# Navigation Editor temp files
+.navigation/

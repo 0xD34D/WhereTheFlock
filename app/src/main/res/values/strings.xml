@@ -1,0 +1,44 @@
+<resources>
+    <string name="app_name">WTF?</string>
+    <string name="app_title">Where The Flock?</string>
+    <string name="clear_saved">Clear Saved</string>
+    <string name="scanner">Scanner</string>
+    <string name="history">History</string>
+    <string name="map">Map</string>
+    <string name="stop">Stop</string>
+    <string name="start">Start</string>
+    <string name="scanning">Scanning...</string>
+    <string name="idle">Idle</string>
+    <string name="targets_found">%1$d targets found</string>
+    <string name="auto_save">Auto-save</string>
+    <string name="save_current_results">Save Current Results</string>
+    <string name="your_location">Your Location</string>
+    <string name="threat_label">Threat: %1$s, RSSI: %2$d</string>
+    <string name="my_location">My Location</string>
+    <string name="unknown_target">Unknown Target</string>
+    <string name="mac_label">MAC: %1$s</string>
+    <string name="reason_label">Reason: %1$s</string>
+    <string name="rssi_label">RSSI: %1$d dBm</string>
+    <string name="loc_label">Loc: %1$.4f, %2$.4f</string>
+    <string name="threat_high">HIGH</string>
+    <string name="threat_med">MED</string>
+    <string name="threat_low">LOW</string>
+    <string name="threat_unknown">"???"</string>
+    <string name="view_on_map">View on Map</string>
+    <string name="share_details">Share Details</string>
+    <string name="share_text_template">
+        Detected %1$s Device:
+        Name: %2$s
+        MAC: %3$s
+        UUID: %4$s
+        Location: %5$.6f, %6$.6f
+        Reason: %7$s
+        Threat Level: %8$d (%9$s)
+        Detected at: %10$s
+    </string>
+    <string name="delete_confirm_title">Confirm Deletion</string>
+    <string name="delete_confirm_msg">Are you sure you want to clear all items in this list?</string>
+    <string name="delete_confirm_positive">Clear All</string>
+    <string name="delete_confirm_negative">Cancel</string>
+    <string name="detected_at">Detected at: %1$s</string>
+</resources>
