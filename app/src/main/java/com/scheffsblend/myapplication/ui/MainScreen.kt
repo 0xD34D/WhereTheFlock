@@ -192,7 +192,10 @@ fun DetectionListTab(
                     )
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.auto_save))
+                    Text(
+                        text = stringResource(R.string.auto_save),
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
                     Switch(checked = autoSave, onCheckedChange = onAutoSaveToggle)
                 }
             }
