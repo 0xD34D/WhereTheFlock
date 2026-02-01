@@ -1,4 +1,4 @@
-package com.scheffsblend.myapplication.scanner
+package com.scheffsblend.wtf.scanner
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -18,7 +18,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import androidx.core.content.ContextCompat
-import com.scheffsblend.myapplication.data.Detection
+import com.scheffsblend.wtf.data.Detection
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.*
@@ -28,28 +28,36 @@ class ScannerManager(private val context: Context) {
     companion object {
         private const val TAG = "ScannerManager"
 
-        // WiFi SSID patterns (case-insensitive)
         private val WIFI_SSID_PATTERNS = listOf(
-            "flock", "Flock", "FLOCK", "FS Ext Battery", "Penguin", "Pigvision"
+            "Flock-", "FS Ext Battery", "Penguin-", "Pigvision"
         )
 
-        // Known Flock Safety MAC address prefixes
-        private val MAC_PREFIXES = listOf(
+        private val WIFI_MAC_PREFIXES = listOf(
             "58:8e:81", "cc:cc:cc", "ec:1b:bd", "90:35:ea", "04:0d:84",
             "f0:82:c0", "1c:34:f1", "38:5b:44", "94:34:69", "b4:e3:f9",
             "70:c9:4e", "3c:91:80", "d8:f3:bc", "80:30:49", "14:5a:fc",
             "74:4c:a1", "08:3a:88", "9c:2f:9d", "94:08:53", "e4:aa:ea"
         )
 
-        // Device name patterns for BLE advertisement detection
+        private val BLE_MAC_PREFIXES = listOf(
+            "cc:cc:cc", "ec:1b:bd", "04:0d:84", "f0:82:c0", "1c:34:f1",
+            "38:5b:44", "3c:91:80", "d8:f3:bc", "14:5a:fc", "08:3a:88",
+            "e4:aa:ea"
+        )
+
         private val DEVICE_NAME_PATTERNS = listOf(
             "FS Ext Battery", "Penguin", "Flock", "Pigvision"
         )
 
-        // Raven surveillance device service UUIDs (shortened for contains() check)
         private val RAVEN_SERVICE_UUIDS = listOf(
-            "0000180a", "00003100", "00003200", "00003300", 
-            "00003400", "00003500", "00001809", "00001819"
+            "00001809-0000-1000-8000-00805f9b34fb",
+            "0000180a-0000-1000-8000-00805f9b34fb",
+            "00001819-0000-1000-8000-00805f9b34fb",
+            "00003100-0000-1000-8000-00805f9b34fb",
+            "00003200-0000-1000-8000-00805f9b34fb",
+            "00003300-0000-1000-8000-00805f9b34fb",
+            "00003400-0000-1000-8000-00805f9b34fb",
+            "00003500-0000-1000-8000-00805f9b34fb"
         )
     }
 
@@ -88,6 +96,7 @@ class ScannerManager(private val context: Context) {
             }
             val mac = device.address
             val uuids = scanRecord?.serviceUuids?.map { it.toString().lowercase() } ?: emptyList()
+            val ravenUuid = uuids.find { it in RAVEN_SERVICE_UUIDS }
 
             val detectionResult = calculateBleThreat(name, mac, uuids)
             if (detectionResult.threatLevel > 0) {
@@ -97,7 +106,7 @@ class ScannerManager(private val context: Context) {
                     type = "Bluetooth",
                     macAddress = mac ?: "Unknown",
                     name = name ?: "Unknown BLE",
-                    uuid = uuids.firstOrNull(),
+                    uuid = ravenUuid,
                     rssi = result.rssi,
                     latitude = location.first,
                     longitude = location.second,
@@ -178,16 +187,16 @@ class ScannerManager(private val context: Context) {
         val upperSsid = ssid?.uppercase(Locale.ROOT) ?: ""
         val upperBssid = bssid?.uppercase(Locale.ROOT) ?: ""
 
-        val ssidPattern = WIFI_SSID_PATTERNS.find { pattern ->
-            upperSsid.contains(pattern.uppercase(Locale.ROOT))
+        val ssidPattern = WIFI_SSID_PATTERNS.find { prefix ->
+            upperSsid.startsWith(prefix.uppercase(Locale.ROOT))
         }
 
-        val macMatch = MAC_PREFIXES.find { prefix ->
+        val macMatch = WIFI_MAC_PREFIXES.find { prefix ->
             upperBssid.startsWith(prefix.uppercase(Locale.ROOT))
         }
 
         return when {
-            ssidPattern != null && macMatch != null -> ThreatResult(3, "SSID + MAC prefix")
+            ssidPattern != null && macMatch != null -> ThreatResult(3, "SSID / MAC prefix")
             ssidPattern != null -> ThreatResult(2, "SSID")
             macMatch != null -> ThreatResult(2, "MAC prefix")
             else -> ThreatResult(0, null)
@@ -198,23 +207,25 @@ class ScannerManager(private val context: Context) {
         val upperName = name?.uppercase(Locale.ROOT) ?: ""
         val upperMac = mac?.uppercase(Locale.ROOT) ?: ""
 
-        val uuidMatch = RAVEN_SERVICE_UUIDS.find { ravenUuid ->
-            uuids.any { it.contains(ravenUuid.lowercase()) }
-        }
-        if (uuidMatch != null) return ThreatResult(3, "Service UUID")
+        val uuidMatch = uuids.find { it in RAVEN_SERVICE_UUIDS }
+        // if (uuidMatch != null) return ThreatResult(3, "Service UUID")
 
         val namePattern = DEVICE_NAME_PATTERNS.find { pattern ->
             upperName.contains(pattern.uppercase(Locale.ROOT))
         }
 
-        val macMatch = MAC_PREFIXES.find { prefix ->
+        val macMatch = BLE_MAC_PREFIXES.find { prefix ->
             upperMac.startsWith(prefix.uppercase(Locale.ROOT))
         }
 
         return when {
-            namePattern != null && macMatch != null -> ThreatResult(3, "BLE Name + MAC prefix")
-            namePattern != null -> ThreatResult(2, "BLE Name")
-            macMatch != null -> ThreatResult(1, "BLE MAC prefix")
+            uuidMatch != null && namePattern != null && macMatch != null -> ThreatResult(3, "Name / MAC prefix / UUID")
+            namePattern != null && macMatch != null -> ThreatResult(2, "Name / MAC prefix")
+            namePattern != null && uuidMatch != null -> ThreatResult(2, "Name / UUID")
+            uuidMatch != null && macMatch != null -> ThreatResult(2, "MAC prefix / UUID")
+            namePattern != null -> ThreatResult(1, "Name")
+            macMatch != null -> ThreatResult(1, "MAC prefix")
+            uuidMatch != null -> ThreatResult(1, "UUID")
             else -> ThreatResult(0, null)
         }
     }
@@ -223,24 +234,43 @@ class ScannerManager(private val context: Context) {
         val currentList = _detections.value.toMutableList()
         val existingIndex = currentList.indexOfFirst { it.macAddress == detection.macAddress }
         if (existingIndex != -1) {
-            currentList[existingIndex] = detection
+            val existing = currentList[existingIndex]
+            if (detection.rssi > existing.rssi) {
+                currentList[existingIndex] = detection
+                _detections.value = currentList
+            }
         } else {
             currentList.add(0, detection)
+            _detections.value = currentList
         }
-        _detections.value = currentList
     }
 
     private fun addDetections(newDetections: List<Detection>) {
         val currentList = _detections.value.toMutableList()
+        var modified = false
         newDetections.forEach { detection ->
             val existingIndex = currentList.indexOfFirst { it.macAddress == detection.macAddress }
             if (existingIndex != -1) {
-                currentList[existingIndex] = detection
+                val existing = currentList[existingIndex]
+                if (detection.rssi > existing.rssi) {
+                    currentList[existingIndex] = detection
+                    modified = true
+                }
             } else {
                 currentList.add(0, detection)
+                modified = true
             }
         }
-        _detections.value = currentList
+        if (modified) {
+            _detections.value = currentList
+        }
+    }
+
+    fun removeDetection(detection: Detection) {
+        val currentList = _detections.value.toMutableList()
+        if (currentList.removeIf { it.macAddress == detection.macAddress }) {
+            _detections.value = currentList
+        }
     }
 
     fun clearDetections() {
@@ -264,7 +294,6 @@ class ScannerManager(private val context: Context) {
 
         _isScanning.value = true
 
-        // Push BLE scanning to the max for responsiveness
         val bleSettings = ScanSettings.Builder()
             .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
             .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
@@ -278,10 +307,8 @@ class ScannerManager(private val context: Context) {
         
         context.registerReceiver(wifiReceiver, IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION))
         
-        // Initial process of current results immediately
         processWifiResults()
         
-        // Start aggressive WiFi scan loop (5s interval for Android 10+ without throttle)
         scanHandler.post(wifiScanRunnable)
     }
 

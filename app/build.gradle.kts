@@ -1,4 +1,7 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 plugins {
     alias(libs.plugins.android.application)
@@ -7,15 +10,18 @@ plugins {
 }
 
 android {
-    namespace = "com.scheffsblend.myapplication"
+    namespace = "com.scheffsblend.wtf"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.scheffsblend.myapplication"
+        applicationId = "com.scheffsblend.wtf"
         minSdk = 29
-        targetSdk = 33
+        targetSdk = 36
         versionCode = 1
-        versionName = "1.0"
+        val versionMajor = 1
+        val versionMinor = 0
+        versionName = "${versionMajor}.${versionMinor}_${getFormattedDate()}"
+        base.archivesName.set("${namespace}-${versionName}")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -58,15 +64,15 @@ dependencies {
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
+    // Using osmdroid for OpenStreetMap
+    implementation(libs.osmdroid.android)
 
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
 
     implementation(libs.play.services.location)
-    
-    // Using osmdroid for OpenStreetMap
-    implementation("org.osmdroid:osmdroid-android:6.1.20")
+
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -75,4 +81,9 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+}
+
+fun getFormattedDate(): String {
+    val dateFormat = SimpleDateFormat("yyyyMMddHHmm", Locale.getDefault())
+    return dateFormat.format(Date())
 }

@@ -1,4 +1,4 @@
-package com.scheffsblend.myapplication.ui.theme
+package com.scheffsblend.wtf.ui.theme
 
 import android.app.Activity
 import android.os.Build

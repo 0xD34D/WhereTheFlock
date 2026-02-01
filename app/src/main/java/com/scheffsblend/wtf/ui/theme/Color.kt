@@ -1,4 +1,4 @@
-package com.scheffsblend.myapplication.ui.theme
+package com.scheffsblend.wtf.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

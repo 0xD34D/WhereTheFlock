@@ -7,9 +7,9 @@
     <string name="map">Map</string>
     <string name="stop">Stop</string>
     <string name="start">Start</string>
-    <string name="scanning">Scanning...</string>
+    <string name="scanning">Scanning…</string>
     <string name="idle">Idle</string>
-    <string name="targets_found">%1$d targets found</string>
+    <string name="targets_found">%1$d devices found</string>
     <string name="auto_save">Auto-save</string>
     <string name="save_current_results">Save Current Results</string>
     <string name="your_location">Your Location</string>
@@ -27,18 +27,22 @@
     <string name="view_on_map">View on Map</string>
     <string name="share_details">Share Details</string>
     <string name="share_text_template">
-        Detected %1$s Device:
-        Name: %2$s
-        MAC: %3$s
-        UUID: %4$s
-        Location: %5$.6f, %6$.6f
-        Reason: %7$s
-        Threat Level: %8$d (%9$s)
-        Detected at: %10$s
+        ** Detected %1$s Device **\n\n
+        \tName: %2$s\n
+        \tMAC: %3$s\n
+        \tUUID: %4$s\n
+        \tLocation: %5$.6f, %6$.6f\n
+        \tReason: %7$s\n
+        \tThreat Level: %8$d (%9$s)\n
+        \tDetected at: %10$s
     </string>
     <string name="delete_confirm_title">Confirm Deletion</string>
     <string name="delete_confirm_msg">Are you sure you want to clear all items in this list?</string>
     <string name="delete_confirm_positive">Clear All</string>
     <string name="delete_confirm_negative">Cancel</string>
     <string name="detected_at">Detected at: %1$s</string>
+    <string name="notif_channel_name">Scanning Service</string>
+    <string name="notif_title">Scanning for devices…</string>
+    <string name="notif_last_target">\nLast: %1$s</string>
+    <string name="notif_no_targets">No targets detected yet</string>
 </resources>

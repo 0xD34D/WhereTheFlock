@@ -1,8 +1,12 @@
-package com.scheffsblend.myapplication
+package com.scheffsblend.wtf
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.pm.PackageManager
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
@@ -11,14 +15,24 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
-import com.google.android.gms.location.*
-import com.scheffsblend.myapplication.ui.MainScreen
-import com.scheffsblend.myapplication.ui.DetectionViewModel
-import com.scheffsblend.myapplication.ui.theme.MyApplicationTheme
+import com.scheffsblend.wtf.ui.MainScreen
+import com.scheffsblend.wtf.ui.DetectionViewModel
+import com.scheffsblend.wtf.ui.theme.MyApplicationTheme
 
 class MainActivity : ComponentActivity() {
     private val viewModel: DetectionViewModel by viewModels()
-    private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private lateinit var locationManager: LocationManager
+
+    private val locationListener = object : LocationListener {
+        override fun onLocationChanged(location: Location) {
+            viewModel.updateLocation(location.latitude, location.longitude)
+        }
+
+        override fun onProviderEnabled(provider: String) {}
+        override fun onProviderDisabled(provider: String) {}
+        @Deprecated("Deprecated in Java")
+        override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
+    }
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -27,14 +41,22 @@ class MainActivity : ComponentActivity() {
         if (allGranted) {
             initializeLocation()
         } else {
-            Toast.makeText(this, "Permissions required for scanning were denied.", Toast.LENGTH_LONG).show()
+            val deniedPermissions = permissions.filter { !it.value }.keys
+            if (deniedPermissions.size == 1 && deniedPermissions.contains(Manifest.permission.POST_NOTIFICATIONS)) {
+                // If only notification permission is denied, we can still function, 
+                // but user should be aware they won't see the foreground service notification.
+                Toast.makeText(this, "Notifications denied. Foreground scanning may not show progress.", Toast.LENGTH_LONG).show()
+                initializeLocation()
+            } else {
+                Toast.makeText(this, "Permissions required for scanning were denied.", Toast.LENGTH_LONG).show()
+            }
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
         
         checkAndRequestPermissions()
         
@@ -52,6 +74,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onPause() {
+        super.onPause()
+        locationManager.removeUpdates(locationListener)
+    }
+
     private fun hasLocationPermissions(): Boolean {
         return ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
                ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
@@ -66,30 +93,43 @@ class MainActivity : ComponentActivity() {
 
     @SuppressLint("MissingPermission")
     private fun getLastKnownLocation() {
-        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-            location?.let {
-                viewModel.updateLocation(it.latitude, it.longitude)
+        val providers = locationManager.getProviders(true)
+        var bestLocation: Location? = null
+        for (provider in providers) {
+            val l = locationManager.getLastKnownLocation(provider) ?: continue
+            if (bestLocation == null || l.accuracy < bestLocation!!.accuracy) {
+                bestLocation = l
             }
+        }
+        
+        bestLocation?.let {
+            viewModel.updateLocation(it.latitude, it.longitude)
         }
     }
 
     @SuppressLint("MissingPermission")
     private fun startLocationUpdates() {
-        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000)
-            .setWaitForAccurateLocation(false)
-            .setMinUpdateIntervalMillis(2000)
-            .setMaxUpdateDelayMillis(10000)
-            .build()
-
-        val locationCallback = object : LocationCallback() {
-            override fun onLocationResult(locationResult: LocationResult) {
-                for (location in locationResult.locations) {
-                    viewModel.updateLocation(location.latitude, location.longitude)
-                }
-            }
+        if (!hasLocationPermissions()) return
+        
+        // Request updates from GPS
+        if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+            locationManager.requestLocationUpdates(
+                LocationManager.GPS_PROVIDER,
+                5000L,
+                0f,
+                locationListener
+            )
         }
-
-        fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, mainLooper)
+        
+        // Request updates from Network (more frequent but less accurate)
+        if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+            locationManager.requestLocationUpdates(
+                LocationManager.NETWORK_PROVIDER,
+                5000L,
+                0f,
+                locationListener
+            )
+        }
     }
 
     private fun checkAndRequestPermissions() {
@@ -109,6 +149,12 @@ class MainActivity : ComponentActivity() {
         }
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             permissionsToRequest.add(Manifest.permission.ACCESS_COARSE_LOCATION)
+        }
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS)
+            }
         }
 
         if (permissionsToRequest.isNotEmpty()) {

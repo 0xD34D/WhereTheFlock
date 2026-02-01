@@ -1,9 +1,15 @@
-package com.scheffsblend.myapplication.data
+package com.scheffsblend.wtf.data
 
+import androidx.compose.runtime.Immutable
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "detections")
+@Immutable
+@Entity(
+    tableName = "detections",
+    indices = [Index(value = ["macAddress"], unique = true)]
+)
 data class Detection(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val type: String, // "WiFi" or "Bluetooth"
