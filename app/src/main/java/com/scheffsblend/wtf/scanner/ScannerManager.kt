@@ -91,7 +91,7 @@ class ScannerManager(private val context: Context) {
                 } else {
                     scanRecord?.deviceName ?: device.name
                 }
-            } catch (e: SecurityException) {
+            } catch (_: SecurityException) {
                 scanRecord?.deviceName
             }
             val mac = device.address
