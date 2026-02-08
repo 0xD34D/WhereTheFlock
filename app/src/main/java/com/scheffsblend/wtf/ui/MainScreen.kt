@@ -38,6 +38,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -53,6 +54,7 @@ import org.osmdroid.views.overlay.Polygon
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -223,7 +225,7 @@ fun DetectionListTab(
                     Switch(checked = autoSave, onCheckedChange = onAutoSaveToggle)
                 }
             }
-            
+
             if (!autoSave && detections.isNotEmpty()) {
                 Button(
                     onClick = onSaveManual,
@@ -446,6 +448,9 @@ fun DetectionItem(
     onRemove: () -> Unit
 ) {
     val context = LocalContext.current
+    val density = LocalDensity.current
+    val maxOffsetPx = with(density) { 80.dp.toPx() }
+
     val threatLabel = when (detection.threatLevel) {
         3 -> stringResource(R.string.threat_high)
         2 -> stringResource(R.string.threat_med)
@@ -495,7 +500,8 @@ fun DetectionItem(
                 }
                 else -> false
             }
-        }
+        },
+        positionalThreshold = { with(density) { maxOffsetPx * 0.9f } }
     )
 
     SwipeToDismissBox(
@@ -533,92 +539,98 @@ fun DetectionItem(
             }
         },
         content = {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp)
-                    .clickable { onNavigateToMap() },
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    // Row 1: Name and Date
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = detection.name ?: stringResource(R.string.unknown_target),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = dateString,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.Gray,
-                            maxLines = 1
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    // Row 2: Content and Threat Indicator
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.Bottom
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
+            Box(Modifier.offset {
+                val offset = runCatching { dismissState.requireOffset() }.getOrDefault(0f)
+                val delta = offset.coerceIn(-maxOffsetPx, maxOffsetPx) - offset
+                IntOffset(delta.roundToInt(), 0)
+            }) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
+                        .clickable { onNavigateToMap() },
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        // Row 1: Name and Date
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Text(
-                                text = stringResource(R.string.mac_label, detection.macAddress),
-                                style = MaterialTheme.typography.bodySmall,
+                                text = detection.name ?: stringResource(R.string.unknown_target),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = dateString,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.Gray,
                                 maxLines = 1
                             )
-                            if (detection.reason != null) {
-                                Text(
-                                    text = stringResource(R.string.reason_label, detection.reason),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.Gray,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.rssi_label, detection.rssi),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    maxLines = 1
-                                )
-                                Spacer(modifier = Modifier.width(16.dp))
-                                Text(
-                                    text = stringResource(R.string.loc_label, detection.latitude, detection.longitude),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    maxLines = 1
-                                )
-                            }
                         }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .background(threatColor, CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = if (detection.type == "WiFi") Icons.Default.Wifi else Icons.Default.Bluetooth,
-                                    contentDescription = detection.type,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(24.dp)
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        // Row 2: Content and Threat Indicator
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.Bottom
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(R.string.mac_label, detection.macAddress),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 1
                                 )
+                                if (detection.reason != null) {
+                                    Text(
+                                        text = stringResource(R.string.reason_label, detection.reason),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color.Gray,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.rssi_label, detection.rssi),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        maxLines = 1
+                                    )
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    Text(
+                                        text = stringResource(R.string.loc_label, detection.latitude, detection.longitude),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        maxLines = 1
+                                    )
+                                }
                             }
-                            Text(threatLabel, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .background(threatColor, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = if (detection.type == "WiFi") Icons.Default.Wifi else Icons.Default.Bluetooth,
+                                        contentDescription = detection.type,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                                Text(threatLabel, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }
