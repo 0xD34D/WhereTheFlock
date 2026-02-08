@@ -49,6 +49,7 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
+import org.osmdroid.views.overlay.Polygon
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -306,12 +307,32 @@ fun MapTab(detections: List<Detection>, userLocation: Pair<Double, Double>?, cen
                     userMarker.position = GeoPoint(it.first, it.second)
                     userMarker.title = context.getString(R.string.your_location)
                     userMarker.icon = AppCompatResources.getDrawable(context, org.osmdroid.library.R.drawable.person)
+                    userMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
                     mapView.overlays.add(userMarker)
                 }
 
                 detections.forEach { detection ->
+                    val color = when (detection.threatLevel) {
+                        3 -> highColor
+                        2 -> medColor
+                        1 -> lowColor
+                        else -> unknownColor
+                    }
+
+                    // Add a semi-transparent circle around the marker to estimate distance based on RSSI
+                    val circle = Polygon(mapView)
+                    circle.points = Polygon.pointsAsCircle(
+                        GeoPoint(detection.latitude, detection.longitude),
+                        calculateRadiusFromRssi(detection.rssi)
+                    )
+                    circle.fillPaint.color = color.copy(alpha = 0.15f).toArgb()
+                    circle.outlinePaint.color = color.copy(alpha = 0.4f).toArgb()
+                    circle.outlinePaint.strokeWidth = 2f
+                    mapView.overlays.add(circle)
+
                     val marker = Marker(mapView)
                     marker.position = GeoPoint(detection.latitude, detection.longitude)
+                    marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
                     marker.title = detection.name ?: context.getString(R.string.unknown_target)
                     
                     val threatLevelLabel = when (detection.threatLevel) {
@@ -321,13 +342,6 @@ fun MapTab(detections: List<Detection>, userLocation: Pair<Double, Double>?, cen
                         else -> context.getString(R.string.threat_unknown)
                     }
                     marker.subDescription = context.getString(R.string.threat_label, threatLevelLabel, detection.rssi)
-                    
-                    val color = when (detection.threatLevel) {
-                        3 -> highColor
-                        2 -> medColor
-                        1 -> lowColor
-                        else -> unknownColor
-                    }
                     
                     val isWifi = detection.type == "WiFi"
                     val painter = if (isWifi) wifiPainter else bluetoothPainter
@@ -369,6 +383,15 @@ fun MapTab(detections: List<Detection>, userLocation: Pair<Double, Double>?, cen
             Icon(Icons.Default.MyLocation, contentDescription = stringResource(R.string.my_location))
         }
     }
+}
+
+private fun calculateRadiusFromRssi(rssi: Int): Double {
+    // A very rough estimate of distance in meters based on RSSI
+    // d = 10 ^ ((P0 - RSSI) / (10 * n))
+    // Using P0 = -40 (RSSI at 1m) and n = 3.0 (path loss exponent)
+    val p0 = -40.0
+    val n = 3.0
+    return Math.pow(10.0, (p0 - rssi) / (10.0 * n))
 }
 
 private fun createCustomMarker(
