@@ -45,4 +45,14 @@
     <string name="notif_title">Scanning for devices…</string>
     <string name="notif_last_target">\nLast: %1$s</string>
     <string name="notif_no_targets">No targets detected yet</string>
+
+    <string name="welcome_title">Welcome to Where The Flock?</string>
+    <string name="welcome_msg">This app helps you detect and map Flock Safety devices. To function correctly, we need the following permissions:</string>
+    <string name="perm_location_title">Location</string>
+    <string name="perm_location_desc">Used to map the location of detected devices and show your position on the map.</string>
+    <string name="perm_bluetooth_title">Bluetooth</string>
+    <string name="perm_bluetooth_desc">Used to scan for nearby Bluetooth devices.</string>
+    <string name="perm_notification_title">Notifications</string>
+    <string name="perm_notification_desc">Used to show a persistent notification while scanning is active in the background.</string>
+    <string name="welcome_get_started">Get Started</string>
 </resources>

@@ -200,9 +200,7 @@ fun DetectionListTab(
     Column(modifier = Modifier.fillMaxSize()) {
         if (isScanning != null && autoSave != null && onAutoSaveToggle != null && onSaveManual != null) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -225,8 +223,8 @@ fun DetectionListTab(
                     Switch(checked = autoSave, onCheckedChange = onAutoSaveToggle)
                 }
             }
-
-            if (!autoSave && detections.isNotEmpty()) {
+            
+            if (autoSave == false && detections.isNotEmpty()) {
                 Button(
                     onClick = onSaveManual,
                     modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()
@@ -238,7 +236,7 @@ fun DetectionListTab(
 
         LazyColumn(
             state = listState,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.weight(1f).fillMaxWidth()
         ) {
             items(detections, key = { "${it.id}-${it.macAddress}" }) { detection ->
                 DetectionItem(
@@ -501,7 +499,8 @@ fun DetectionItem(
                 else -> false
             }
         },
-        positionalThreshold = { with(density) { maxOffsetPx * 0.9f } }
+        // Require the user to pull almost to the max offset
+        positionalThreshold = { _ -> maxOffsetPx * 0.9f }
     )
 
     SwipeToDismissBox(

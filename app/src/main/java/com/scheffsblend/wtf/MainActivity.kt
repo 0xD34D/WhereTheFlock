@@ -14,14 +14,18 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.runtime.*
 import androidx.core.content.ContextCompat
 import com.scheffsblend.wtf.ui.MainScreen
 import com.scheffsblend.wtf.ui.DetectionViewModel
+import com.scheffsblend.wtf.ui.WelcomeScreen
 import com.scheffsblend.wtf.ui.theme.MyApplicationTheme
 
 class MainActivity : ComponentActivity() {
     private val viewModel: DetectionViewModel by viewModels()
     private lateinit var locationManager: LocationManager
+
+    private var showWelcomeScreen by mutableStateOf(false)
 
     private val locationListener = object : LocationListener {
         override fun onLocationChanged(location: Location) {
@@ -58,11 +62,27 @@ class MainActivity : ComponentActivity() {
         
         locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
         
-        checkAndRequestPermissions()
+        val isFirstRun = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+            .getBoolean("first_run", true)
+
+        if (isFirstRun && !hasAllPermissions()) {
+            showWelcomeScreen = true
+        } else {
+            checkAndRequestPermissions()
+        }
         
         setContent {
             MyApplicationTheme {
-                MainScreen(viewModel)
+                if (showWelcomeScreen) {
+                    WelcomeScreen(onGetStarted = {
+                        getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                            .edit().putBoolean("first_run", false).apply()
+                        showWelcomeScreen = false
+                        checkAndRequestPermissions()
+                    })
+                } else {
+                    MainScreen(viewModel)
+                }
             }
         }
     }
@@ -82,6 +102,25 @@ class MainActivity : ComponentActivity() {
     private fun hasLocationPermissions(): Boolean {
         return ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
                ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun hasAllPermissions(): Boolean {
+        val locationGranted = hasLocationPermissions()
+        
+        val bluetoothGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+        
+        val notificationsGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+        
+        return locationGranted && bluetoothGranted && notificationsGranted
     }
 
     private fun initializeLocation() {
