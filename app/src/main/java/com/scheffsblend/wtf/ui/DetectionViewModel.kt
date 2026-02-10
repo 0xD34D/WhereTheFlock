@@ -1,10 +1,17 @@
 package com.scheffsblend.wtf.ui
 
+import android.Manifest
 import android.app.Application
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import android.widget.Toast
+import androidx.compose.ui.res.stringResource
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.scheffsblend.wtf.R
 import com.scheffsblend.wtf.WTFApplication
 import com.scheffsblend.wtf.data.AppDatabase
 import com.scheffsblend.wtf.data.Detection
@@ -65,11 +72,25 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
     fun toggleScanning() {
         if (!_hasPermissions.value) return
 
-        val intent = Intent(getApplication(), ScanningService::class.java)
-        if (isScanning.value) {
-            getApplication<Application>().stopService(intent)
-        } else {
+        if (!isScanning.value) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                if (ContextCompat.checkSelfPermission(
+                        getApplication(),
+                        Manifest.permission.POST_NOTIFICATIONS
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    Toast.makeText(
+                        getApplication(),
+                        R.string.toast_missing_notif_perms,
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+            val intent = Intent(getApplication(), ScanningService::class.java)
             getApplication<Application>().startForegroundService(intent)
+        } else {
+            val intent = Intent(getApplication(), ScanningService::class.java)
+            getApplication<Application>().stopService(intent)
         }
     }
 

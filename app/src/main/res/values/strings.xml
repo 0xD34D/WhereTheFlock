@@ -59,4 +59,5 @@
     <string name="permissions_missing_title">Permissions Missing</string>
     <string name="permissions_missing_msg">Scanning is disabled because required permissions (Location and Bluetooth) are not granted. Please grant these permissions in app settings to use the scanner.</string>
     <string name="open_settings">Open Settings</string>
+    <string name="toast_missing_notif_perms">Notifications are disabled.  Background scanning may be affected.</string>
 </resources>

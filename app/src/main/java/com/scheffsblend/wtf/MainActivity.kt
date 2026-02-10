@@ -12,7 +12,6 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -52,10 +51,8 @@ class MainActivity : ComponentActivity() {
         } else {
             val deniedPermissions = permissions.filter { !it.value }.keys
             if (deniedPermissions.size == 1 && deniedPermissions.contains(Manifest.permission.POST_NOTIFICATIONS)) {
-                Toast.makeText(this, "Notifications denied. Foreground scanning may not show progress.", Toast.LENGTH_LONG).show()
+                // If only notification permission is denied, we can still function.
                 initializeLocation()
-            } else {
-                Toast.makeText(this, "Permissions required for scanning were denied.", Toast.LENGTH_LONG).show()
             }
         }
     }
