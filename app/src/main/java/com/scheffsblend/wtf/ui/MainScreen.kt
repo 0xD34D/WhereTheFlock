@@ -36,6 +36,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
@@ -43,6 +44,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.scheffsblend.wtf.MainActivity
 import com.scheffsblend.wtf.R
 import com.scheffsblend.wtf.data.Detection
 import org.osmdroid.config.Configuration
@@ -65,6 +67,7 @@ fun MainScreen(viewModel: DetectionViewModel) {
     val savedDetections by viewModel.savedDetections.collectAsState()
     val autoSave by viewModel.saveAutomatically.collectAsState()
     val userLocation by viewModel.userLocation.collectAsState()
+    val hasPermissions by viewModel.hasPermissions.collectAsState()
 
     var mapCenterOverride by remember { mutableStateOf<GeoPoint?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -135,8 +138,10 @@ fun MainScreen(viewModel: DetectionViewModel) {
         floatingActionButton = {
             if (selectedTab == 0) {
                 FloatingActionButton(
-                    onClick = { viewModel.toggleScanning() },
-                    containerColor = if (isScanning) colorResource(R.color.threat_color_high) else MaterialTheme.colorScheme.primaryContainer
+                    onClick = { if (hasPermissions) viewModel.toggleScanning() else {} },
+                    containerColor = if (!hasPermissions) Color.Gray 
+                                    else if (isScanning) colorResource(R.color.threat_color_high) 
+                                    else MaterialTheme.colorScheme.primaryContainer
                 ) {
                     Icon(
                         if (isScanning) Icons.Default.Stop else Icons.Default.PlayArrow,
@@ -148,18 +153,24 @@ fun MainScreen(viewModel: DetectionViewModel) {
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
             when (selectedTab) {
-                0 -> DetectionListTab(
-                    detections = currentDetections,
-                    isScanning = isScanning,
-                    autoSave = autoSave,
-                    onAutoSaveToggle = viewModel::toggleAutoSave,
-                    onSaveManual = viewModel::saveCurrentDetections,
-                    onNavigateToMap = { detection ->
-                        mapCenterOverride = GeoPoint(detection.latitude, detection.longitude)
-                        selectedTab = 2
-                    },
-                    onRemoveItem = { viewModel.removeCurrentDetection(it) }
-                )
+                0 -> {
+                    if (!hasPermissions) {
+                        PermissionMissingScreen()
+                    } else {
+                        DetectionListTab(
+                            detections = currentDetections,
+                            isScanning = isScanning,
+                            autoSave = autoSave,
+                            onAutoSaveToggle = viewModel::toggleAutoSave,
+                            onSaveManual = viewModel::saveCurrentDetections,
+                            onNavigateToMap = { detection ->
+                                mapCenterOverride = GeoPoint(detection.latitude, detection.longitude)
+                                selectedTab = 2
+                            },
+                            onRemoveItem = { viewModel.removeCurrentDetection(it) }
+                        )
+                    }
+                }
                 1 -> DetectionListTab(
                     detections = savedDetections,
                     onNavigateToMap = { detection ->
@@ -175,6 +186,41 @@ fun MainScreen(viewModel: DetectionViewModel) {
                     MapTab(allDetections, userLocation, mapCenterOverride)
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun PermissionMissingScreen() {
+    val context = LocalContext.current
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.Warning,
+            contentDescription = null,
+            tint = Color.Red,
+            modifier = Modifier.size(64.dp)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = stringResource(R.string.permissions_missing_title),
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = stringResource(R.string.permissions_missing_msg),
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(onClick = { (context as? MainActivity)?.openAppSettings() }) {
+            Text(stringResource(R.string.open_settings))
         }
     }
 }
@@ -557,6 +603,7 @@ fun DetectionItem(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            @Suppress("DEPRECATION")
                             Text(
                                 text = detection.name ?: stringResource(R.string.unknown_target),
                                 fontWeight = FontWeight.Bold,

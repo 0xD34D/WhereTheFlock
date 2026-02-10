@@ -24,6 +24,9 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
     val isScanning = scannerManager.isScanning
     val currentDetections = scannerManager.detections
     val userLocation = scannerManager.userLocation
+
+    private val _hasPermissions = MutableStateFlow(true)
+    val hasPermissions = _hasPermissions.asStateFlow()
     
     private val _savedDetections = MutableStateFlow<List<Detection>>(emptyList())
     val savedDetections: StateFlow<List<Detection>> = _savedDetections.asStateFlow()
@@ -55,7 +58,13 @@ class DetectionViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    fun setPermissionsGranted(granted: Boolean) {
+        _hasPermissions.value = granted
+    }
+
     fun toggleScanning() {
+        if (!_hasPermissions.value) return
+
         val intent = Intent(getApplication(), ScanningService::class.java)
         if (isScanning.value) {
             getApplication<Application>().stopService(intent)

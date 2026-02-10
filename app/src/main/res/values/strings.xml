@@ -55,4 +55,8 @@
     <string name="perm_notification_title">Notifications</string>
     <string name="perm_notification_desc">Used to show a persistent notification while scanning is active in the background.</string>
     <string name="welcome_get_started">Get Started</string>
+
+    <string name="permissions_missing_title">Permissions Missing</string>
+    <string name="permissions_missing_msg">Scanning is disabled because required permissions (Location and Bluetooth) are not granted. Please grant these permissions in app settings to use the scanner.</string>
+    <string name="open_settings">Open Settings</string>
 </resources>
