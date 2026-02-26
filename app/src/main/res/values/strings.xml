@@ -27,14 +27,12 @@
     <string name="view_on_map">View on Map</string>
     <string name="share_details">Share Details</string>
     <string name="share_text_template">
-        ** Detected %1$s Device **\n\n
+        ** Detected %1$s Device **\n
         \tName: %2$s\n
         \tMAC: %3$s\n
-        \tUUID: %4$s\n
-        \tLocation: %5$.6f, %6$.6f\n
-        \tReason: %7$s\n
-        \tThreat Level: %8$d (%9$s)\n
-        \tDetected at: %10$s
+        \tLocation: https://www.openstreetmap.org/?mlat=%4$.6f&amp;mlon=%5$.6f&amp;zoom=16\n
+        \tThreat Level: %6$s\n
+        \tDetected at: %7$s
     </string>
     <string name="delete_confirm_title">Confirm Deletion</string>
     <string name="delete_confirm_msg">Are you sure you want to clear all items in this list?</string>

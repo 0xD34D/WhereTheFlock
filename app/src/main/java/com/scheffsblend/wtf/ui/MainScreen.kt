@@ -524,11 +524,8 @@ fun DetectionItem(
                         detection.type,
                         detection.name ?: context.getString(R.string.unknown_target),
                         detection.macAddress,
-                        detection.uuid ?: "N/A",
                         detection.latitude,
                         detection.longitude,
-                        detection.reason ?: "N/A",
-                        detection.threatLevel,
                         threatLabel,
                         dateString
                     )
