@@ -56,6 +56,7 @@ import org.osmdroid.views.overlay.Polygon
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -510,9 +511,12 @@ fun DetectionItem(
 
     val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()) }
     val dateString = dateFormat.format(Date(detection.timestamp))
-
+    val dismissStateRef = remember { object { var state: SwipeToDismissBoxState? = null } }
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
+            val currentOffset = abs(dismissStateRef.state?.requireOffset() ?: 0f)
+            if (currentOffset < maxOffsetPx * 0.95f) return@rememberSwipeToDismissBoxState false
+
             when (value) {
                 SwipeToDismissBoxValue.EndToStart -> {
                     onRemove()
@@ -542,9 +546,10 @@ fun DetectionItem(
                 else -> false
             }
         },
-        // Require the user to pull almost to the max offset
         positionalThreshold = { _ -> maxOffsetPx * 0.9f }
     )
+
+    dismissStateRef.state = dismissState
 
     SwipeToDismissBox(
         state = dismissState,
@@ -552,8 +557,8 @@ fun DetectionItem(
             val direction = dismissState.dismissDirection
 
             val color = when (direction) {
-                SwipeToDismissBoxValue.StartToEnd -> colorResource(R.color.share_color) // Green for share
-                SwipeToDismissBoxValue.EndToStart -> colorResource(R.color.threat_color_high) // Red for delete
+                SwipeToDismissBoxValue.StartToEnd -> colorResource(R.color.share_color)
+                SwipeToDismissBoxValue.EndToStart -> colorResource(R.color.threat_color_high)
                 else -> Color.Transparent
             }
             val alignment = when (direction) {
